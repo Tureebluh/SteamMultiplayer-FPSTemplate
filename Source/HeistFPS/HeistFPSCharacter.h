@@ -26,6 +26,18 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
 
+	/** Initiates combat for animations */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat)
+	bool bCombatInitiated;
+
+	/** Used for rifle animations */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat)
+	bool bRifleEquipped;
+
+	/** Used for ADS rifle animations */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat)
+	bool bAimDownSight;
+
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFPSCamera() const { return FPSCamera; }
 
@@ -76,6 +88,10 @@ protected:
 	void Sprint();
 
 	void StopSprint();
+
+	void EquipRifle();
+
+	void AimDownSight();
 	
 };
 

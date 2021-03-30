@@ -29,7 +29,7 @@ AHeistFPSCharacter::AHeistFPSCharacter()
 	// Configure character movement
 	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f); // ...at this rotation rate
-	GetCharacterMovement()->JumpZVelocity = 600.f;
+	GetCharacterMovement()->JumpZVelocity = 400.f;
 	GetCharacterMovement()->AirControl = 0.2f;
 	GetCharacterMovement()->MaxWalkSpeed = MaxWalkSpeed;
 	GetCharacterMovement()->MaxWalkSpeedCrouched = MaxCrouchSpeed;
@@ -56,7 +56,7 @@ void AHeistFPSCharacter::BeginPlay() {
 void AHeistFPSCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	GEngine->AddOnScreenDebugMessage(1, 15.0f, FColor::Yellow, FString::Printf(TEXT("IS CROUCHING %d"), bIsCrouched));
+	//GEngine->AddOnScreenDebugMessage(1, 15.0f, FColor::Yellow, FString::Printf(TEXT("Rifle Equipped - %d"), bRifleEquipped));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -73,6 +73,11 @@ void AHeistFPSCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 
 	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AHeistFPSCharacter::Sprint);
 	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AHeistFPSCharacter::StopSprint);
+
+	PlayerInputComponent->BindAction("EquipRifle", IE_Pressed, this, &AHeistFPSCharacter::EquipRifle);
+
+	PlayerInputComponent->BindAction("RifleADS", IE_Pressed, this, &AHeistFPSCharacter::AimDownSight);
+	PlayerInputComponent->BindAction("RifleADS", IE_Released, this, &AHeistFPSCharacter::AimDownSight);
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &AHeistFPSCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AHeistFPSCharacter::MoveRight);
@@ -133,6 +138,29 @@ void AHeistFPSCharacter::Sprint()
 void AHeistFPSCharacter::StopSprint()
 {
 	GetCharacterMovement()->MaxWalkSpeed = MaxWalkSpeed;
+}
+
+void AHeistFPSCharacter::EquipRifle()
+{
+	if (bRifleEquipped) {
+		bCombatInitiated = false;
+		bRifleEquipped = false;
+	}
+	else {
+		bCombatInitiated = true;
+		bRifleEquipped = true;
+	}
+	
+}
+
+void AHeistFPSCharacter::AimDownSight()
+{
+	if (bCombatInitiated) {
+		bAimDownSight = !bAimDownSight;
+	}
+	else {
+		bAimDownSight = false;
+	}
 }
 
 
