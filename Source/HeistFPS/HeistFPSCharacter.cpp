@@ -48,8 +48,8 @@ void AHeistFPSCharacter::BeginPlay() {
 	Super::BeginPlay();
 	if (GetMesh()) {
 		FPSCamera->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, TEXT("head"));
-		FPSCamera->AddLocalOffset(FVector(0.0f, 10.0f, 0.0f));
-		bUseControllerRotationYaw = true;
+		FPSCamera->AddLocalOffset(FVector(0.0f, 5.0f, 0.0f));
+		bUseControllerRotationYaw = false;
 		FPSCamera->bUsePawnControlRotation = true;
 	}
 	GetCharacterMovement()->GetNavAgentPropertiesRef().bCanCrouch = true;
