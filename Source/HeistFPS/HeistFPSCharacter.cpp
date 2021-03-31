@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
+#include "Components/ChildActorComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -14,7 +15,6 @@
 
 AHeistFPSCharacter::AHeistFPSCharacter()
 {
-
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
@@ -27,7 +27,7 @@ AHeistFPSCharacter::AHeistFPSCharacter()
 	bUseControllerRotationRoll = false;
 
 	// Configure character movement
-	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
+	GetCharacterMovement()->bOrientRotationToMovement = false; // Character moves in the direction of input...	
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f); // ...at this rotation rate
 	GetCharacterMovement()->JumpZVelocity = 400.f;
 	GetCharacterMovement()->AirControl = 0.2f;
@@ -36,6 +36,9 @@ AHeistFPSCharacter::AHeistFPSCharacter()
 
 	// Create a camera
 	FPSCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FPSCamera"));
+
+	// Create component for child actor
+	Weapon = CreateDefaultSubobject<UChildActorComponent>(TEXT("Weapon"));
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
@@ -70,6 +73,7 @@ void AHeistFPSCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
 	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AHeistFPSCharacter::ToggleCrouch);
+	PlayerInputComponent->BindAction("Prone", IE_Pressed, this, &AHeistFPSCharacter::ToggleProne);
 
 	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AHeistFPSCharacter::Sprint);
 	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AHeistFPSCharacter::StopSprint);
@@ -127,6 +131,17 @@ void AHeistFPSCharacter::ToggleCrouch()
 	}
 	else {
 		Crouch();
+		if (bIsProne) {
+			bIsProne = false;
+		}
+	}
+}
+
+void AHeistFPSCharacter::ToggleProne()
+{
+	bIsProne = !bIsProne;
+	if (GetCharacterMovement()->IsCrouching()) {
+		UnCrouch();
 	}
 }
 

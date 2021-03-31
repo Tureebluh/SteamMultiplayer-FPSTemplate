@@ -18,6 +18,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FPSCamera;
 
+	/** Actor Component for spawning and destroying guns on equip */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Combat)
+	class UChildActorComponent* Weapon;
+
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseTurnRate;
@@ -28,15 +32,19 @@ public:
 
 	/** Initiates combat for animations */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat)
-	bool bCombatInitiated;
+	bool bCombatInitiated = false;
 
 	/** Used for rifle animations */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat)
-	bool bRifleEquipped;
+	bool bRifleEquipped = false;
 
 	/** Used for ADS rifle animations */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat)
-	bool bAimDownSight;
+	bool bAimDownSight = false;
+
+	/** Used for prone animations */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
+	bool bIsProne = false;
 
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFPSCamera() const { return FPSCamera; }
@@ -84,6 +92,8 @@ protected:
 	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
 
 	void ToggleCrouch();
+
+	void ToggleProne();
 
 	void Sprint();
 
