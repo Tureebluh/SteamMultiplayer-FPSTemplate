@@ -30,6 +30,21 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Movement)
+	float MaxWalkSpeed = 300.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Movement)
+	float MaxCrouchSpeed = 200.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
+	float CurrentSpeed;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
+	float CurrentDirection;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
+	bool bAimOffsetRotation;
+
 	/** Initiates combat for animations */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat)
 	bool bCombatInitiated = false;
@@ -42,20 +57,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat)
 	bool bAimDownSight = false;
 
-	/** Used for prone animations */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
-	bool bIsProne = false;
-
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFPSCamera() const { return FPSCamera; }
 
 protected:
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Movement)
-	float MaxWalkSpeed = 300.0f;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Movement)
-	float MaxCrouchSpeed = 200.0f;
 
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -93,8 +98,6 @@ protected:
 
 	void ToggleCrouch();
 
-	void ToggleProne();
-
 	void Sprint();
 
 	void StopSprint();
@@ -102,6 +105,8 @@ protected:
 	void EquipRifle();
 
 	void AimDownSight();
+
+	void UpdateCharacterRotation(float DeltaTime);
 	
 };
 

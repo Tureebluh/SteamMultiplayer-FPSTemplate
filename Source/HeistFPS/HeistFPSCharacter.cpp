@@ -15,6 +15,8 @@
 
 AHeistFPSCharacter::AHeistFPSCharacter()
 {
+	PrimaryActorTick.bCanEverTick = true;
+
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
@@ -48,18 +50,18 @@ void AHeistFPSCharacter::BeginPlay() {
 	Super::BeginPlay();
 	if (GetMesh()) {
 		FPSCamera->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, TEXT("head"));
-		FPSCamera->AddLocalOffset(FVector(0.0f, 5.0f, 0.0f));
+		FPSCamera->AddLocalOffset(FVector(3.0f, 5.0f, 0.0f));
 		bUseControllerRotationYaw = false;
 		FPSCamera->bUsePawnControlRotation = true;
 	}
 	GetCharacterMovement()->GetNavAgentPropertiesRef().bCanCrouch = true;
-	SetActorTickEnabled(false);
 }
 
 void AHeistFPSCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	//GEngine->AddOnScreenDebugMessage(1, 15.0f, FColor::Yellow, FString::Printf(TEXT("Rifle Equipped - %d"), bRifleEquipped));
+	UpdateCharacterRotation(DeltaTime);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -73,7 +75,6 @@ void AHeistFPSCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
 	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AHeistFPSCharacter::ToggleCrouch);
-	PlayerInputComponent->BindAction("Prone", IE_Pressed, this, &AHeistFPSCharacter::ToggleProne);
 
 	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AHeistFPSCharacter::Sprint);
 	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AHeistFPSCharacter::StopSprint);
@@ -126,24 +127,17 @@ void AHeistFPSCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Loc
 
 void AHeistFPSCharacter::ToggleCrouch()
 {
+	if (!bCombatInitiated) {
+		return;
+	}
 	if (GetCharacterMovement()->IsCrouching()) {
 		UnCrouch();
 	}
 	else {
 		Crouch();
-		if (bIsProne) {
-			bIsProne = false;
-		}
 	}
 }
 
-void AHeistFPSCharacter::ToggleProne()
-{
-	bIsProne = !bIsProne;
-	if (GetCharacterMovement()->IsCrouching()) {
-		UnCrouch();
-	}
-}
 
 void AHeistFPSCharacter::Sprint()
 {
@@ -165,7 +159,6 @@ void AHeistFPSCharacter::EquipRifle()
 		bCombatInitiated = true;
 		bRifleEquipped = true;
 	}
-	
 }
 
 void AHeistFPSCharacter::AimDownSight()
@@ -177,7 +170,6 @@ void AHeistFPSCharacter::AimDownSight()
 		bAimDownSight = false;
 	}
 }
-
 
 void AHeistFPSCharacter::TurnAtRate(float Rate)
 {
@@ -217,5 +209,22 @@ void AHeistFPSCharacter::MoveRight(float Value)
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 		// add movement in that direction
 		AddMovementInput(Direction, Value);
+	}
+}
+
+void AHeistFPSCharacter::UpdateCharacterRotation(float DeltaTime)
+{
+	if (Controller != nullptr) {
+		FRotator ActorRotation = GetActorRotation();
+		FRotator ControllerRotation = Controller->GetControlRotation();
+		FRotator DeltaRotation = FRotator(0.0f, FMath::Abs(ActorRotation.Yaw - ControllerRotation.Yaw), 0.0f);
+		if ((DeltaRotation.Yaw >= 70.0f) || bAimOffsetRotation) {
+			bAimOffsetRotation = true;
+			FRotator InterpRotation = FMath::RInterpTo(FRotator(0, 0, 0), DeltaRotation, DeltaTime, 5.0f);
+			AddActorWorldRotation(InterpRotation);
+		}
+		if (FMath::IsNearlyEqual(DeltaRotation.Yaw, 0.0f, 2.0f)) {
+			bAimOffsetRotation = false;
+		}
 	}
 }
