@@ -50,7 +50,7 @@ void AHeistFPSCharacter::BeginPlay() {
 	Super::BeginPlay();
 	if (GetMesh()) {
 		FPSCamera->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, TEXT("head"));
-		FPSCamera->AddLocalOffset(FVector(3.0f, 5.0f, 0.0f));
+		FPSCamera->AddLocalOffset(FVector(0.0f, 8.0f, 0.0f));
 		bUseControllerRotationYaw = false;
 		FPSCamera->bUsePawnControlRotation = true;
 	}
@@ -60,7 +60,7 @@ void AHeistFPSCharacter::BeginPlay() {
 void AHeistFPSCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	//GEngine->AddOnScreenDebugMessage(1, 15.0f, FColor::Yellow, FString::Printf(TEXT("Rifle Equipped - %d"), bRifleEquipped));
+	GEngine->AddOnScreenDebugMessage(1, 15.0f, FColor::Yellow, FString::Printf(TEXT("Rotation is active - %d"), bAimOffsetRotation));
 	UpdateCharacterRotation(DeltaTime);
 }
 
@@ -217,14 +217,14 @@ void AHeistFPSCharacter::UpdateCharacterRotation(float DeltaTime)
 	if (Controller != nullptr) {
 		FRotator ActorRotation = GetActorRotation();
 		FRotator ControllerRotation = Controller->GetControlRotation();
-		FRotator DeltaRotation = FRotator(0.0f, FMath::Abs(ActorRotation.Yaw - ControllerRotation.Yaw), 0.0f);
-		if ((DeltaRotation.Yaw >= 70.0f) || bAimOffsetRotation) {
-			bAimOffsetRotation = true;
-			FRotator InterpRotation = FMath::RInterpTo(FRotator(0, 0, 0), DeltaRotation, DeltaTime, 5.0f);
-			AddActorWorldRotation(InterpRotation);
-		}
-		if (FMath::IsNearlyEqual(DeltaRotation.Yaw, 0.0f, 2.0f)) {
+		FRotator DeltaRotation = FRotator(0.0f, ControllerRotation.Yaw - ActorRotation.Yaw, 0.0f);
+		if (FMath::IsNearlyEqual(DeltaRotation.Yaw, 0.0f, 45.0f)) {
 			bAimOffsetRotation = false;
+		}
+		if ((FMath::Abs(DeltaRotation.Yaw) >= 90.0f) || bAimOffsetRotation) {
+			bAimOffsetRotation = true;
+			FRotator InterpRotation = FMath::RInterpTo(FRotator(0.0f, 0.0f, 0.0f), DeltaRotation, DeltaTime, 2.5f);
+			AddActorWorldRotation(InterpRotation);
 		}
 	}
 }
