@@ -43,6 +43,12 @@ public:
 	float CurrentDirection;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
+	float CurrentPitch;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
+	float CurrentYaw;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
 	bool bAimOffsetRotation;
 
 	/** Initiates combat for animations */
@@ -106,7 +112,7 @@ protected:
 
 	void AimDownSight();
 
-	void UpdateCharacterRotation(float DeltaTime);
+	void UpdateCharacterAnimMovement(float DeltaTime);
 	
 };
 

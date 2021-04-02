@@ -51,17 +51,17 @@ void AHeistFPSCharacter::BeginPlay() {
 	if (GetMesh()) {
 		FPSCamera->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, TEXT("head"));
 		FPSCamera->AddLocalOffset(FVector(0.0f, 8.0f, 0.0f));
-		bUseControllerRotationYaw = false;
 		FPSCamera->bUsePawnControlRotation = true;
 	}
 	GetCharacterMovement()->GetNavAgentPropertiesRef().bCanCrouch = true;
+	bUseControllerRotationYaw = false;
 }
 
 void AHeistFPSCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	GEngine->AddOnScreenDebugMessage(1, 15.0f, FColor::Yellow, FString::Printf(TEXT("Rotation is active - %d"), bAimOffsetRotation));
-	UpdateCharacterRotation(DeltaTime);
+	//GEngine->AddOnScreenDebugMessage(1, 15.0f, FColor::Yellow, FString::Printf(TEXT("Normalized Direction - %d"), CurrentDirection));
+	UpdateCharacterAnimMovement(DeltaTime);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -212,19 +212,35 @@ void AHeistFPSCharacter::MoveRight(float Value)
 	}
 }
 
-void AHeistFPSCharacter::UpdateCharacterRotation(float DeltaTime)
+void AHeistFPSCharacter::UpdateCharacterAnimMovement(float DeltaTime)
 {
 	if (Controller != nullptr) {
+		//Get difference between rotation of actor and controller
 		FRotator ActorRotation = GetActorRotation();
 		FRotator ControllerRotation = Controller->GetControlRotation();
 		FRotator DeltaRotation = FRotator(0.0f, ControllerRotation.Yaw - ActorRotation.Yaw, 0.0f);
+		//Turn of rotation if rotation difference is less than 45 degrees
 		if (FMath::IsNearlyEqual(DeltaRotation.Yaw, 0.0f, 45.0f)) {
 			bAimOffsetRotation = false;
 		}
+		//If player is turning 90 degrees or more - interp rotate character
 		if ((FMath::Abs(DeltaRotation.Yaw) >= 90.0f) || bAimOffsetRotation) {
 			bAimOffsetRotation = true;
 			FRotator InterpRotation = FMath::RInterpTo(FRotator(0.0f, 0.0f, 0.0f), DeltaRotation, DeltaTime, 2.5f);
 			AddActorWorldRotation(InterpRotation);
+		}
+		//Calculate angle of direction and speed
+		CurrentSpeed = GetVelocity().Size();
+		FVector NormalizedForward = GetActorForwardVector().GetSafeNormal();
+		FVector NormalizedVelocity = GetVelocity().GetSafeNormal();
+		CurrentDirection = FMath::RadiansToDegrees(acosf(FVector::DotProduct(NormalizedVelocity, NormalizedForward)));
+
+		if (bCombatInitiated) {
+			FRotator FullDeltaRotation = ControllerRotation - ActorRotation;
+			FullDeltaRotation.Roll = 0.0f;
+			FRotator InterpRotation = FMath::RInterpTo(FRotator(CurrentPitch, CurrentYaw, 0.0f), FullDeltaRotation, DeltaTime, 8.0f);
+			CurrentPitch = InterpRotation.Pitch;
+			CurrentYaw = InterpRotation.Yaw;
 		}
 	}
 }
