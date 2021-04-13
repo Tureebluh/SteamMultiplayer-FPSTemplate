@@ -1,7 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "HeistFPSGameMode.h"
-#include "HeistFPSCharacter.h"
+#include "Player/HeistFPSCharacter.h"
 #include "UObject/ConstructorHelpers.h"
 
 AHeistFPSGameMode::AHeistFPSGameMode()
