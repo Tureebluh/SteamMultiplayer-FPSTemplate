@@ -111,6 +111,8 @@ protected:
 
 	void StopSprint();
 
+	void FireWeapon();
+
 	void TogglePrimaryWeapon();
 
 	void AimDownSight();

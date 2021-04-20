@@ -11,6 +11,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Actor.h"
 #include "Animation/AnimInstance.h"
+#include "Kismet/GameplayStatics.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AHeistFPSCharacter
@@ -86,6 +87,8 @@ void AHeistFPSCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	//GEngine->AddOnScreenDebugMessage(1, 15.0f, FColor::Yellow, FString::Printf(TEXT("Normalized Direction - %f"), CurrentDirection));
 	//UE_LOG(LogTemp, Warning, TEXT("Some warning message"));
+	//FString NetMode = GEngine->GetNetMode(GetWorld()) == NM_Client ? TEXT("Client") : TEXT("Server");
+	//UE_LOG(LogTemp, Warning, TEXT("%s is running StartSprint()"), *NetMode);
 	UpdateCharacterAnimMovement(DeltaTime);
 }
 
@@ -102,11 +105,12 @@ void AHeistFPSCharacter::UpdateCharacterAnimMovement(float DeltaTime)
 		FRotator ControllerRotation = Controller->GetControlRotation();
 		FRotator DeltaRotation = FRotator(0.0f, ControllerRotation.Yaw - ActorRotation.Yaw, 0.0f);
 
-		//Turn off rotation if rotation difference is less than 45 degrees
+		//Turn off rotation if rotation difference is less than n degrees
 		if (FMath::IsNearlyEqual(DeltaRotation.Yaw, 0.0f, 20.0f)) {
 			bAimOffsetRotation = false;
 		}
-		//If player is turning 90 degrees or more - interp rotate character
+		//If player is turning past the autorotationthreshold  - interp rotate character
+		//If player has no weapon, turn more frequently
 		if (!bCombatInitiated) {
 			AutoRotationThreshold = 20.0f;
 		}
@@ -176,6 +180,7 @@ void AHeistFPSCharacter::SpawnDefaultInventory()
 	if (Inventory.Num() > 0)
 	{
 		Inventory[0]->AttachToComponent(GetMesh(), FAttachmentTransformRules::KeepRelativeTransform, TEXT("RifleEquipSocket"));
+		Inventory[0]->SetActorHiddenInGame(true);
 	}
 }
 
@@ -203,6 +208,7 @@ void AHeistFPSCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AHeistFPSCharacter::StopSprint);
 
 	PlayerInputComponent->BindAction("TogglePrimaryWeapon", IE_Pressed, this, &AHeistFPSCharacter::TogglePrimaryWeapon);
+	PlayerInputComponent->BindAction("FireWeapon", IE_Pressed, this, &AHeistFPSCharacter::FireWeapon);
 
 	PlayerInputComponent->BindAction("AimDownSight", IE_Pressed, this, &AHeistFPSCharacter::AimDownSight);
 	PlayerInputComponent->BindAction("AimDownSight", IE_Released, this, &AHeistFPSCharacter::AimDownSight);
@@ -326,25 +332,29 @@ void AHeistFPSCharacter::ServerUpdateLastMoveRight_Implementation(float Value) {
 	}
 }
 
+void AHeistFPSCharacter::FireWeapon() {
+	if (bCombatInitiated) {
+		Inventory[0]->SimulateWeaponFire();
+	}
+}
+
 /********************************************************************
 				TOGGLE PRIMARY WEAPON CLIENT & SERVER
 *********************************************************************/
 void AHeistFPSCharacter::TogglePrimaryWeapon()
 {
-	if (!bPrimaryEquipped) {
-		bCombatInitiated = true;
-		bPrimaryEquipped = true;
-		if (!HasAuthority()) {
-			ServerTogglePrimaryWeapon(true);
-		}
+	if (!HasAuthority()) {
+		ServerTogglePrimaryWeapon(!bPrimaryEquipped);
+	}
+	if (!bPrimaryEquipped)
+	{
+		Inventory[0]->SetActorHiddenInGame(false);
 	}
 	else {
-		bPrimaryEquipped = false;
-		bCombatInitiated = false;
-		if (!HasAuthority()) {
-			ServerTogglePrimaryWeapon(false);
-		}
+		Inventory[0]->SetActorHiddenInGame(true);
 	}
+	bCombatInitiated = !bCombatInitiated;
+	bPrimaryEquipped = !bPrimaryEquipped;
 }
 bool AHeistFPSCharacter::ServerTogglePrimaryWeapon_Validate(bool IsEquipping) {
 	return true;
@@ -353,6 +363,13 @@ void AHeistFPSCharacter::ServerTogglePrimaryWeapon_Implementation(bool IsEquippi
 	if (HasAuthority()) {
 		bCombatInitiated = IsEquipping;
 		bPrimaryEquipped = IsEquipping;
+		if (IsEquipping)
+		{
+			Inventory[0]->SetActorHiddenInGame(false);
+		}
+		else {
+			Inventory[0]->SetActorHiddenInGame(true);
+		}
 	}
 }
 
@@ -362,11 +379,21 @@ void AHeistFPSCharacter::ServerTogglePrimaryWeapon_Implementation(bool IsEquippi
 void AHeistFPSCharacter::AimDownSight()
 {
 	if (!HasAuthority()) {
-		bAimDownSight = !bAimDownSight;
 		ServerAimDownSight();
 	}
+	bAimDownSight = !bAimDownSight;
+
+	if (bAimDownSight) {
+		FPSCamera->Activate(false);
+		Inventory[0]->GetADSCamera()->Activate(true);
+		APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+		PC->SetViewTargetWithBlend(Inventory[0], 0.25f);
+	}
 	else {
-		ServerAimDownSight();
+		FPSCamera->Activate(true);
+		Inventory[0]->GetADSCamera()->Activate(false);
+		APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+		PC->SetViewTargetWithBlend(this, 0.25f);
 	}
 }
 bool AHeistFPSCharacter::ServerAimDownSight_Validate() {
