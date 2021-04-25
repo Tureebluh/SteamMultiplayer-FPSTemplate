@@ -105,6 +105,8 @@ protected:
 
 	void LookUpAtRate(float Rate);
 
+	void TogglePauseMenu();
+
 	void ToggleCrouch();
 
 	void StartSprint();

@@ -1,7 +1,10 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Player/HeistFPSCharacter.h"
+
 #include "Weapon/WeaponBase.h"
+#include "Game/HeistFPSGameInstance.h"
+
 #include "Net/UnrealNetwork.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -119,7 +122,7 @@ void AHeistFPSCharacter::UpdateCharacterAnimMovement(float DeltaTime)
 		}
 		if ((FMath::Abs(DeltaRotation.Yaw) >= AutoRotationThreshold) || bAimOffsetRotation) {
 			bAimOffsetRotation = true;
-			FRotator InterpRotation = FMath::RInterpTo(FRotator(0.0f, 0.0f, 0.0f), DeltaRotation, DeltaTime, 2.5f);
+			FRotator InterpRotation = FMath::RInterpTo(FRotator(0.0f, 0.0f, 0.0f), DeltaRotation, DeltaTime, 2.0f);
 			AddActorWorldRotation(InterpRotation);
 		}
 
@@ -152,7 +155,7 @@ void AHeistFPSCharacter::UpdateCharacterAnimMovement(float DeltaTime)
 			FullDeltaRotation.Roll = 0.0f;
 
 			//Interp between current rotation and difference
-			FRotator InterpRotation = FMath::RInterpTo(FRotator(CurrentPitch, CurrentYaw, 0.0f), FullDeltaRotation, DeltaTime, 8.0f);
+			FRotator InterpRotation = FMath::RInterpTo(FRotator(CurrentPitch, CurrentYaw, 0.0f), FullDeltaRotation, DeltaTime, 15.0f);
 			//Set next pitch and yaw from interp
 			CurrentPitch = InterpRotation.Pitch;
 			CurrentYaw = InterpRotation.Yaw;
@@ -213,6 +216,8 @@ void AHeistFPSCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	PlayerInputComponent->BindAction("AimDownSight", IE_Pressed, this, &AHeistFPSCharacter::AimDownSight);
 	PlayerInputComponent->BindAction("AimDownSight", IE_Released, this, &AHeistFPSCharacter::AimDownSight);
 
+	PlayerInputComponent->BindAction("TogglePauseMenu", IE_Pressed, this, &AHeistFPSCharacter::TogglePauseMenu);
+
 	PlayerInputComponent->BindAxis("MoveForward", this, &AHeistFPSCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AHeistFPSCharacter::MoveRight);
 
@@ -224,6 +229,16 @@ void AHeistFPSCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
 	PlayerInputComponent->BindAxis("LookUpRate", this, &AHeistFPSCharacter::LookUpAtRate);
 
+}
+
+/********************************************************************
+				TOGGLE CROUCH CLIENT & SERVER
+*********************************************************************/
+void AHeistFPSCharacter::TogglePauseMenu()
+{
+	UHeistFPSGameInstance* GI = Cast<UHeistFPSGameInstance>(GetGameInstance());
+	if (!ensure(GI != nullptr)) { return; }
+	GI->TogglePauseMenu();
 }
 
 /********************************************************************
@@ -378,6 +393,8 @@ void AHeistFPSCharacter::ServerTogglePrimaryWeapon_Implementation(bool IsEquippi
 *********************************************************************/
 void AHeistFPSCharacter::AimDownSight()
 {
+	if (!bCombatInitiated) { return; }
+
 	if (!HasAuthority()) {
 		ServerAimDownSight();
 	}

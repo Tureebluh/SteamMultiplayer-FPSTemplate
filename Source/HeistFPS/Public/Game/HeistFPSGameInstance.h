@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
+#include "Game/MenuInterface.h"
 #include "HeistFPSGameInstance.generated.h"
 
 USTRUCT(BlueprintType)
@@ -19,12 +20,24 @@ public:
 };
 
 UCLASS()
-class HEISTFPS_API UHeistFPSGameInstance : public UGameInstance
+class HEISTFPS_API UHeistFPSGameInstance : public UGameInstance, public IMenuInterface
 {
 	GENERATED_BODY()
 
+public:
+	UHeistFPSGameInstance(const FObjectInitializer &ObjectInitializer);
+
+	virtual void Init() override;
+
+	void TogglePauseMenu();
+
 protected:
-	UFUNCTION(BlueprintCallable)
-	void LoadMap(FText MapURL);
 	
+	void HostMap(FText MapURL) override;
+	
+	void JoinMap(const FString& IpAddress) override;
+
+private:
+	TSubclassOf<class UUserWidget> PauseMenuClass;
+	class UUserWidget* PauseMenu;
 };
