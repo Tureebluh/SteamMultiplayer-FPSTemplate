@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
 #include "Game/MenuInterface.h"
+#include "Interfaces/OnlineSessionInterface.h"
 #include "HeistFPSGameInstance.generated.h"
 
 USTRUCT(BlueprintType)
@@ -25,6 +26,7 @@ class HEISTFPS_API UHeistFPSGameInstance : public UGameInstance, public IMenuInt
 	GENERATED_BODY()
 
 public:
+
 	UHeistFPSGameInstance(const FObjectInitializer &ObjectInitializer);
 
 	virtual void Init() override;
@@ -38,6 +40,17 @@ protected:
 	void JoinMap(const FString& IpAddress) override;
 
 private:
+
 	TSubclassOf<class UUserWidget> PauseMenuClass;
+
 	class UUserWidget* PauseMenu;
+
+	IOnlineSessionPtr SessionInterface;
+
+	void OnCreateSessionComplete(FName SessionName, bool Success);
+	void OnDestroySessionComplete(FName SessionName, bool Success);
+
+	void CreateSession();
+
+	FText SelectedHostMap;
 };
