@@ -13,11 +13,11 @@ struct FMapInfo {
 	GENERATED_BODY()
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FText MapURL;
+		FText MapURL;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FText MapName;
+		FText MapName;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FText MapDescription;
+		FText MapDescription;
 };
 
 UCLASS()
@@ -31,6 +31,9 @@ public:
 
 	virtual void Init() override;
 
+	UFUNCTION(BlueprintCallable)
+	void LoadMainMenu();
+
 	void TogglePauseMenu();
 
 protected:
@@ -39,16 +42,24 @@ protected:
 	
 	void JoinMap(const FString& IpAddress) override;
 
+	void QuitGame() override;
+
+	void RefreshServerList() override;
+
 private:
-
 	TSubclassOf<class UUserWidget> PauseMenuClass;
-
 	class UUserWidget* PauseMenu;
+
+	TSubclassOf<class UUserWidget> MainMenuClass;
+	class UMainMenu* MainMenu;
 
 	IOnlineSessionPtr SessionInterface;
 
+	TSharedPtr<class FOnlineSessionSearch> SessionSearch;
+
 	void OnCreateSessionComplete(FName SessionName, bool Success);
 	void OnDestroySessionComplete(FName SessionName, bool Success);
+	void OnFindSessionsComplete(bool Success);
 
 	void CreateSession();
 

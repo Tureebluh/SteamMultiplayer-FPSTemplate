@@ -9,6 +9,8 @@
 #include "OnlineSubsystem.h"
 #include "OnlineSessionSettings.h"
 
+#include "Game/MainMenu.h"
+
 const static FName SESSION_NAME = TEXT("My Session");
 
 UHeistFPSGameInstance::UHeistFPSGameInstance(const FObjectInitializer &ObjectInitializer)
@@ -16,12 +18,19 @@ UHeistFPSGameInstance::UHeistFPSGameInstance(const FObjectInitializer &ObjectIni
 	//Return if PauseMenu is not found
 	ConstructorHelpers::FClassFinder<UUserWidget>PauseMenuBPClass(TEXT("/Game/UI/WBP_PauseMenu"));
 	if (!ensure(PauseMenuBPClass.Class != nullptr)) { return; }
-
 	PauseMenuClass = PauseMenuBPClass.Class;
+
+	//Return if MainMenu is not found
+	ConstructorHelpers::FClassFinder<UUserWidget>MainMenuBPClass(TEXT("/Game/UI/WBP_MainMenu"));
+	if (!ensure(MainMenuBPClass.Class != nullptr)) { return; }
+	MainMenuClass = MainMenuBPClass.Class;
 }
 
 void UHeistFPSGameInstance::Init()
 {
+
+	
+
 	//Get Online SubSystem
 	IOnlineSubsystem* SubSystem = IOnlineSubsystem::Get();
 
@@ -34,11 +43,22 @@ void UHeistFPSGameInstance::Init()
 		{
 			SessionInterface->OnCreateSessionCompleteDelegates.AddUObject(this, &UHeistFPSGameInstance::OnCreateSessionComplete);
 			SessionInterface->OnDestroySessionCompleteDelegates.AddUObject(this, &UHeistFPSGameInstance::OnDestroySessionComplete);
+			SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &UHeistFPSGameInstance::OnFindSessionsComplete);
 		}
 	}
 	else {
 		UE_LOG(LogTemp, Warning, TEXT("Subsystem not found."));
 	}
+}
+
+void UHeistFPSGameInstance::LoadMainMenu()
+{
+	//Return if MainMenuClass is null
+	if (!ensure(MainMenuClass != nullptr)) { UE_LOG(LogTemp, Warning, TEXT("MainMenuClass not found.")); return; }
+	
+	MainMenu = CreateWidget<UMainMenu>(this, MainMenuClass);
+	MainMenu->SetMenuInterface(this);
+	MainMenu->Setup();
 }
 
 void UHeistFPSGameInstance::TogglePauseMenu()
@@ -89,6 +109,35 @@ void UHeistFPSGameInstance::HostMap(FText MapURL)
 	}
 }
 
+void UHeistFPSGameInstance::JoinMap(const FString& IpAddress)
+{
+	if (MainMenu != nullptr)
+	{
+		MainMenu->SetServerList({ TEXT("Test1"),TEXT("Test2") });
+	}
+	////Return if PlayerController is null
+	//APlayerController* PlayerController = GetFirstLocalPlayerController();
+	//if (!ensure(PlayerController != nullptr)) { return; }
+	//
+	////Load map at specified IP address as client
+	//PlayerController->ClientTravel(IpAddress, ETravelType::TRAVEL_Absolute);
+
+}
+
+void UHeistFPSGameInstance::RefreshServerList()
+{
+	if (!SessionInterface.IsValid()) { return; }
+	if (!ensure(MainMenu != nullptr)) { return; }
+	MainMenu->ClearServerList();
+
+	SessionSearch = MakeShareable(new FOnlineSessionSearch());
+	if (SessionSearch.IsValid())
+	{
+		SessionSearch->bIsLanQuery = true;
+		SessionInterface->FindSessions(0, SessionSearch.ToSharedRef());
+	}
+}
+
 void UHeistFPSGameInstance::OnCreateSessionComplete(FName SessionName, bool Success)
 {
 	//Return and print error to console if session creation fails
@@ -112,6 +161,22 @@ void UHeistFPSGameInstance::OnDestroySessionComplete(FName SessionName, bool Suc
 	CreateSession();
 }
 
+void UHeistFPSGameInstance::OnFindSessionsComplete(bool Success)
+{
+	if (!Success) { UE_LOG(LogTemp, Warning, TEXT("Failed to find sessions.")); return; }
+	if (!SessionSearch.IsValid()) { UE_LOG(LogTemp, Warning, TEXT("SessionSearch is not valid.")); return; }
+
+	TArray<FString> SessionNames;
+
+	for (FOnlineSessionSearchResult& Session : SessionSearch->SearchResults)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Found session: %s"), *Session.GetSessionIdStr());
+		SessionNames.Add(Session.GetSessionIdStr());
+	}
+	if (!ensure(MainMenu != nullptr)) { return; }
+	MainMenu->SetServerList(SessionNames);
+}
+
 void UHeistFPSGameInstance::CreateSession()
 {
 	//Check if SessionInterface is valid and print error to console if not
@@ -119,15 +184,19 @@ void UHeistFPSGameInstance::CreateSession()
 
 	//Create session with specified session name
 	FOnlineSessionSettings SessionSettings;
+	SessionSettings.bIsLANMatch = true;
+	SessionSettings.bShouldAdvertise = true;
+	SessionSettings.NumPublicConnections = 4;
 	SessionInterface->CreateSession(0, FName(SESSION_NAME), SessionSettings);
 }
 
-void UHeistFPSGameInstance::JoinMap(const FString& IpAddress)
+void UHeistFPSGameInstance::QuitGame()
 {
-	//Return if PlayerController is null
-	APlayerController* PlayerController = GetFirstLocalPlayerController();
+	UWorld* World = GetWorld();
+	if (!ensure(World != nullptr)) { return; }
+
+	APlayerController* PlayerController = World->GetFirstPlayerController();
 	if (!ensure(PlayerController != nullptr)) { return; }
-	
-	//Load map at specified IP address as client
-	PlayerController->ClientTravel(IpAddress, ETravelType::TRAVEL_Absolute);
+
+	PlayerController->ConsoleCommand("quit");
 }

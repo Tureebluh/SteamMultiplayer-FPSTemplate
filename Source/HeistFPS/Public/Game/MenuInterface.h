@@ -24,6 +24,14 @@ class HEISTFPS_API IMenuInterface
 public:
 	UFUNCTION(BlueprintCallable)
 	virtual void HostMap(FText MapURL) = 0;
+
 	UFUNCTION(BlueprintCallable)
 	virtual void JoinMap(const FString& IpAddress) = 0;
+
+	UFUNCTION(BlueprintCallable)
+	virtual void QuitGame() = 0;
+
+	UFUNCTION(BlueprintCallable)
+	virtual void RefreshServerList() = 0;
+
 };
