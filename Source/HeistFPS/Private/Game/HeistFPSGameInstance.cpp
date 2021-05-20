@@ -44,6 +44,7 @@ void UHeistFPSGameInstance::Init()
 			SessionInterface->OnCreateSessionCompleteDelegates.AddUObject(this, &UHeistFPSGameInstance::OnCreateSessionComplete);
 			SessionInterface->OnDestroySessionCompleteDelegates.AddUObject(this, &UHeistFPSGameInstance::OnDestroySessionComplete);
 			SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &UHeistFPSGameInstance::OnFindSessionsComplete);
+			SessionInterface->OnJoinSessionCompleteDelegates.AddUObject(this, &UHeistFPSGameInstance::OnJoinSessionComplete);
 		}
 	}
 	else {
@@ -93,11 +94,8 @@ void UHeistFPSGameInstance::TogglePauseMenu()
 	}
 }
 
-void UHeistFPSGameInstance::HostMap(FText MapURL)
+void UHeistFPSGameInstance::HostMap()
 {
-	//Initialize map to be loaded
-	SelectedHostMap = MapURL;
-
 	//Check if session already exist and destroy if true - otherwise create session
 	FNamedOnlineSession* ExistingSession = SessionInterface->GetNamedSession(SESSION_NAME);
 	if (ExistingSession != nullptr)
@@ -107,21 +105,6 @@ void UHeistFPSGameInstance::HostMap(FText MapURL)
 	else {
 		CreateSession();
 	}
-}
-
-void UHeistFPSGameInstance::JoinMap(const FString& IpAddress)
-{
-	if (MainMenu != nullptr)
-	{
-		MainMenu->SetServerList({ TEXT("Test1"),TEXT("Test2") });
-	}
-	////Return if PlayerController is null
-	//APlayerController* PlayerController = GetFirstLocalPlayerController();
-	//if (!ensure(PlayerController != nullptr)) { return; }
-	//
-	////Load map at specified IP address as client
-	//PlayerController->ClientTravel(IpAddress, ETravelType::TRAVEL_Absolute);
-
 }
 
 void UHeistFPSGameInstance::RefreshServerList()
@@ -138,19 +121,35 @@ void UHeistFPSGameInstance::RefreshServerList()
 	}
 }
 
+void UHeistFPSGameInstance::CreateSession()
+{
+	//Check if SessionInterface is valid and print error to console if not
+	if (!SessionInterface.IsValid()) { UE_LOG(LogTemp, Warning, TEXT("SessionInterface is not valid")); return; }
+
+	//Create session with specified session name
+	FOnlineSessionSettings SessionSettings;
+	SessionSettings.bIsLANMatch = true;
+	SessionSettings.bShouldAdvertise = true;
+	SessionSettings.NumPublicConnections = 4;
+	SessionInterface->CreateSession(0, FName(SESSION_NAME), SessionSettings);
+}
+
 void UHeistFPSGameInstance::OnCreateSessionComplete(FName SessionName, bool Success)
 {
 	//Return and print error to console if session creation fails
 	if (!Success) { UE_LOG(LogTemp, Warning, TEXT("Failed to create session.")); return; }
-	//Return if selected host map name is empty
-	if (SelectedHostMap.EqualTo(FText::GetEmpty(), ETextComparisonLevel::Default)) { return; }
 
 	//Return if world does not exist
 	UWorld* World = GetWorld();
 	if (!ensure(World != nullptr)) { return; }
 
+	if (MainMenu != nullptr)
+	{
+		MainMenu->Teardown();
+	}
+
 	//Load map as listening server
-	World->ServerTravel(SelectedHostMap.ToString() + "?listen");
+	World->ServerTravel("/Game/Maps/Test/Test1?listen");
 }
 
 void UHeistFPSGameInstance::OnDestroySessionComplete(FName SessionName, bool Success)
@@ -159,6 +158,18 @@ void UHeistFPSGameInstance::OnDestroySessionComplete(FName SessionName, bool Suc
 	if (!Success) { UE_LOG(LogTemp, Warning, TEXT("Failed to destroy session.")); return; }
 	
 	CreateSession();
+}
+
+void UHeistFPSGameInstance::JoinMap(uint32 SessionIndex)
+{
+	if (!SessionInterface.IsValid()) { return; }
+	if (!SessionSearch.IsValid()) { return; }
+	if (MainMenu != nullptr)
+	{
+		MainMenu->Teardown();
+	}
+
+	SessionInterface->JoinSession(0, SESSION_NAME, SessionSearch->SearchResults[SessionIndex]);
 }
 
 void UHeistFPSGameInstance::OnFindSessionsComplete(bool Success)
@@ -177,17 +188,19 @@ void UHeistFPSGameInstance::OnFindSessionsComplete(bool Success)
 	MainMenu->SetServerList(SessionNames);
 }
 
-void UHeistFPSGameInstance::CreateSession()
+void UHeistFPSGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
 {
-	//Check if SessionInterface is valid and print error to console if not
-	if (!SessionInterface.IsValid()) { UE_LOG(LogTemp, Warning, TEXT("SessionInterface is not valid")); return; }
+	if (!SessionInterface.IsValid()) { return; }
 
-	//Create session with specified session name
-	FOnlineSessionSettings SessionSettings;
-	SessionSettings.bIsLANMatch = true;
-	SessionSettings.bShouldAdvertise = true;
-	SessionSettings.NumPublicConnections = 4;
-	SessionInterface->CreateSession(0, FName(SESSION_NAME), SessionSettings);
+	FString IpAddress;
+	if (!SessionInterface->GetResolvedConnectString(SessionName, IpAddress)) { UE_LOG(LogTemp, Warning, TEXT("Could not resolve connection string.")); return; }
+
+	//Return if PlayerController is null
+	APlayerController* PlayerController = GetFirstLocalPlayerController();
+	if (!ensure(PlayerController != nullptr)) { return; }
+	
+	//Load map at specified IP address as client
+	PlayerController->ClientTravel(IpAddress, ETravelType::TRAVEL_Absolute);
 }
 
 void UHeistFPSGameInstance::QuitGame()

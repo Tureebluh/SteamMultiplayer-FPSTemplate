@@ -31,6 +31,8 @@ bool UMainMenu::Initialize()
 	if (!ensure(MainQuitBtn != nullptr)) { return false; }
 	MainQuitBtn->OnClicked.AddDynamic(this, &UMainMenu::QuitGamePressed);
 
+	if (!ensure(HostConfirmBtn != nullptr)) { return false; }
+	HostConfirmBtn->OnClicked.AddDynamic(this, &UMainMenu::HostAGame);
 	if (!ensure(HostBackBtn != nullptr)) { return false; }
 	HostBackBtn->OnClicked.AddDynamic(this, &UMainMenu::BackToMainMenu);
 
@@ -59,6 +61,17 @@ void UMainMenu::Setup()
 	World->GetFirstPlayerController()->bShowMouseCursor = true;
 }
 
+void UMainMenu::Teardown()
+{
+	UWorld* World = GetWorld();
+	if (!ensure(World != nullptr)) { return; }
+
+	this->RemoveFromViewport();
+	FInputModeGameOnly InputModeData;
+	World->GetFirstPlayerController()->SetInputMode(InputModeData);
+	World->GetFirstPlayerController()->bShowMouseCursor = false;
+}
+
 void UMainMenu::OpenHostMenu()
 {
 	if (!ensure(MainMenuSwitcher != nullptr)) { return; }
@@ -77,14 +90,20 @@ void UMainMenu::SetServerList(TArray<FString> SessionNames)
 {
 	if (!ensure(SessionList != nullptr)) { return; }
 
-	for (FString Session : SessionNames)
+	for (int32 i = 0; i < SessionNames.Num(); i++)
 	{
 		USessionBtn* SessionBtn = CreateWidget<USessionBtn>(this, SessionBtnClass);
 		if (!ensure(SessionBtn != nullptr)) { return; }
-		SessionBtn->SetSessionName(FText::FromString(Session));
+		SessionBtn->SetSessionName(FText::FromString(SessionNames[i]));
+		SessionBtn->Setup(this, i);
 		SessionList->AddChild(SessionBtn);
 	}
 	LoadingThrobber->SetVisibility(ESlateVisibility::Collapsed);
+}
+
+void UMainMenu::SetSelectedSession(uint32 InIndex)
+{
+	SelectedSessionIndex = InIndex;
 }
 
 void UMainMenu::ClearServerList()
@@ -97,7 +116,21 @@ void UMainMenu::ClearServerList()
 void UMainMenu::JoinAGame()
 {
 	if (!ensure(MenuInterface != nullptr)) { return; }
-	MenuInterface->JoinMap("");
+	
+	if (SelectedSessionIndex.IsSet())
+	{
+		MenuInterface->JoinMap(SelectedSessionIndex.GetValue());
+	}
+	else {
+		UE_LOG(LogTemp, Warning, TEXT("Session index not set."));
+	}
+	
+}
+
+void UMainMenu::HostAGame()
+{
+	if (!ensure(MenuInterface != nullptr)) { return; }
+	MenuInterface->HostMap();
 }
 
 void UMainMenu::BackToMainMenu()

@@ -37,13 +37,13 @@ public:
 	void TogglePauseMenu();
 
 protected:
-	
-	void HostMap(FText MapURL) override;
-	
-	void JoinMap(const FString& IpAddress) override;
-
+	UFUNCTION()
+	void HostMap() override;
+	UFUNCTION()
+	void JoinMap(uint32 SessionIndex) override;
+	UFUNCTION()
 	void QuitGame() override;
-
+	UFUNCTION()
 	void RefreshServerList() override;
 
 private:
@@ -60,8 +60,7 @@ private:
 	void OnCreateSessionComplete(FName SessionName, bool Success);
 	void OnDestroySessionComplete(FName SessionName, bool Success);
 	void OnFindSessionsComplete(bool Success);
+	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
 
 	void CreateSession();
-
-	FText SelectedHostMap;
 };

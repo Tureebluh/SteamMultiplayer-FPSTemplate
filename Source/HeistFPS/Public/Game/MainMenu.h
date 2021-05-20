@@ -25,7 +25,11 @@ public:
 
 	void SetMenuInterface(IMenuInterface* Interface);
 
+	void SetSelectedSession(uint32 InIndex);
+
 	void Setup();
+
+	void Teardown();
 
 protected:
 	virtual bool Initialize();
@@ -46,6 +50,9 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	class UButton* HostBackBtn;
+
+	UPROPERTY(meta = (BindWidget))
+	class UButton* HostConfirmBtn;
 
 	UPROPERTY(meta = (BindWidget))
 	class UButton* JoinConfirmBtn;
@@ -72,10 +79,15 @@ private:
 	void JoinAGame();
 
 	UFUNCTION()
+	void HostAGame();
+
+	UFUNCTION()
 	void BackToMainMenu();
 
 	UFUNCTION()
 	void QuitGamePressed();
 
 	IMenuInterface* MenuInterface;
+
+	TOptional<uint32> SelectedSessionIndex;
 };
